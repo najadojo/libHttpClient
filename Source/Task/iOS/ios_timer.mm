@@ -51,21 +51,11 @@ void PlatformTimer::Start(uint32_t delayInMs) noexcept
     }
     else
     {
-        float interval = static_cast<float>(delayInMs) / 1000.0f;
-        m_timerWrapper->timer = [NSTimer scheduledTimerWithTimeInterval: interval
+        m_timerWrapper->timer = [NSTimer scheduledTimerWithTimeInterval:delayInMs / 1000.0f
                                                                  target:m_targetWrapper->target
                                                                selector:@selector(timerFireMethod:)
                                                                userInfo:[NSValue valueWithPointer:this]
                                                                 repeats:false];
-
-        auto curLoop = [NSRunLoop currentRunLoop];
-        auto curMode = [curLoop currentMode];
-        if (curMode == nil)
-        {
-            NSDate *now = [NSDate date];
-            NSDate *until = [now dateByAddingTimeInterval:interval * 1.1f];
-            [curLoop runUntilDate:until];
-        }
     }
 }
 
