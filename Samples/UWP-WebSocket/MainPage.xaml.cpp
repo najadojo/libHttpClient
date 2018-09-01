@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "MainPage.xaml.h"
 #include <httpClient\httpClient.h>
 
@@ -76,7 +76,7 @@ std::string format_string(_Printf_format_string_ char const* format, ...)
     return message;
 }
 
-void HandleAsyncQueueCallback(
+void CALLBACK HandleAsyncQueueCallback(
     _In_ void* context,
     _In_ async_queue_handle_t queue,
     _In_ AsyncQueueCallbackType type
@@ -297,7 +297,7 @@ void HttpTestApp::MainPage::SendMessage_Button_Click(Platform::Object^ sender, W
     asyncBlock->callback = [](AsyncBlock* asyncBlock)
     {
         WebSocketCompletionResult result = {};
-        HCGetWebSocketConnectResult(asyncBlock, &result);
+        HCGetWebSocketSendMessageResult(asyncBlock, &result);
 
         g_MainPage->LogToUI(format_string("HCWebSocketSendMessage complete: %d, %d", result.errorCode, result.platformErrorCode));
         delete asyncBlock;
