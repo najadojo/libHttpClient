@@ -45,10 +45,6 @@
 #include <codecvt>
 #include <iomanip>
 
-#if HC_UWP_API
-#include <collection.h>
-#endif
-
 #ifndef _WIN32
 #define UNREFERENCED_PARAMETER(args) (void)(args);
 #endif
