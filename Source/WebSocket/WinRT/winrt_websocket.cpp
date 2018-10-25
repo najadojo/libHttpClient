@@ -3,21 +3,24 @@
 
 #include "pch.h"
 #include "../HCWebSocket.h"
+#include <winrt/windows.foundation.h>
+#include <winrt/windows.storage.streams.h>
+#include <winrt/windows.networking.sockets.h>
 
 using namespace xbox::httpclient;
-using namespace ::Windows::Foundation;
-using namespace ::Windows::Storage;
-using namespace ::Windows::Storage::Streams;
-using namespace ::Windows::Networking;
-using namespace ::Windows::Networking::Sockets;
+using namespace winrt::Windows::Foundation;
+using namespace winrt::Windows::Storage;
+using namespace winrt::Windows::Storage::Streams;
+using namespace winrt::Windows::Networking;
+using namespace winrt::Windows::Networking::Sockets;
 
 
 class websocket_outgoing_message
 {
 public: 
     http_internal_string m_message;
-    AsyncBlock* m_asyncBlock;
-    DataWriterStoreOperation^ m_storeAsyncOp;
+    AsyncBlock* m_asyncBlock{ nullptr };
+    DataWriterStoreOperation m_storeAsyncOp{ nullptr };
     AsyncStatus m_storeAsyncOpStatus;
     HRESULT m_storeAsyncResult;
     uint64_t m_id;
@@ -25,7 +28,7 @@ public:
 
 // This class is required by the implementation in order to function:
 // The TypedEventHandler requires the message received and close handler to be a member of WinRT class.
-ref class ReceiveContext sealed
+class ReceiveContext
 {
 public:
     ReceiveContext() : m_websocket(nullptr)
@@ -37,8 +40,8 @@ public:
         _In_opt_ void* executionRoutineContext
         );
 
-    void OnReceive(MessageWebSocket^ sender, MessageWebSocketMessageReceivedEventArgs^ args);
-    void OnClosed(IWebSocket^ sender, WebSocketClosedEventArgs^ args);
+    void OnReceive(MessageWebSocket sender, MessageWebSocketMessageReceivedEventArgs args);
+    void OnClosed(IWebSocket sender, WebSocketClosedEventArgs args);
 
 private:
     hc_websocket_handle_t m_websocket;
@@ -51,12 +54,12 @@ public:
     {
     }
 
-    Windows::Networking::Sockets::MessageWebSocket^ m_messageWebSocket;
-    Windows::Storage::Streams::DataWriter^ m_messageDataWriter;
+    MessageWebSocket m_messageWebSocket;
+    DataWriter m_messageDataWriter;
     HRESULT m_connectAsyncOpResult;
-    ReceiveContext^ m_context;
+    ReceiveContext m_context;
 
-    IAsyncAction^ m_connectAsyncOp;
+    IAsyncAction m_connectAsyncOp;
 
     std::mutex m_outgoingMessageQueueLock;
     std::queue<std::shared_ptr<websocket_outgoing_message>> m_outgoingMessageQueue;
@@ -67,36 +70,33 @@ void MessageWebSocketSendMessage(
     _In_ std::shared_ptr<winrt_websocket_impl> websocketTask
     );
 
-void ReceiveContext::OnReceive(MessageWebSocket^ sender, MessageWebSocketMessageReceivedEventArgs^ args)
+void ReceiveContext::OnReceive(MessageWebSocket sender, MessageWebSocketMessageReceivedEventArgs args)
 {
     try
     {
-        DataReader^ reader = args->GetDataReader();
-        const auto len = reader->UnconsumedBufferLength;
+        DataReader reader = args.GetDataReader();
+        const auto len = reader.UnconsumedBufferLength();
         if (len > 0)
         {
-            std::string payload;
+            std::vector<uint8_t> payload;
             payload.resize(len);
-            reader->ReadBytes(Platform::ArrayReference<uint8_t>(reinterpret_cast<uint8 *>(&payload[0]), len));
-            HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: receieved msg [%s]", m_websocket->id, payload.c_str());
+            reader.ReadBytes(payload);
+            HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: receieved msg [%s]", m_websocket->id, payload.data());
 
             HCWebSocketMessageFunction messageFunc = nullptr;
             HCWebSocketGetFunctions(&messageFunc, nullptr);
             if (messageFunc != nullptr)
             {
-                messageFunc(m_websocket, payload.c_str());
+                messageFunc(m_websocket, reinterpret_cast<const char*>(payload.data()));
             }
         }
-    }
-    catch (Platform::Exception ^e)
-    {
     }
     catch (...)
     {
     }
 }
 
-void ReceiveContext::OnClosed(IWebSocket^ sender, WebSocketClosedEventArgs^ args)
+void ReceiveContext::OnClosed(IWebSocket sender, WebSocketClosedEventArgs args)
 {
     HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: on closed event triggered", m_websocket->id);
 
@@ -104,7 +104,7 @@ void ReceiveContext::OnClosed(IWebSocket^ sender, WebSocketClosedEventArgs^ args
     HCWebSocketGetFunctions(nullptr, &closeFunc);
     if (closeFunc != nullptr)
     {
-        closeFunc(m_websocket, static_cast<HCWebSocketCloseStatus>(args->Code));
+        closeFunc(m_websocket, static_cast<HCWebSocketCloseStatus>(args.Code()));
     }
 }
 
@@ -145,7 +145,7 @@ try
     HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: Connect executing", websocket->id);
 
     std::shared_ptr<winrt_websocket_impl> websocketTask = std::dynamic_pointer_cast<winrt_websocket_impl>(websocket->impl);
-    websocketTask->m_messageWebSocket = ref new MessageWebSocket();
+    websocketTask->m_messageWebSocket = MessageWebSocket();
 
     uint32_t numHeaders = 0;
     HCWebSocketGetNumHeaders(websocket, &numHeaders);
@@ -161,11 +161,7 @@ try
         // 'Sec-WebSocket-Protocol' header here. It requires you to go through their API instead.
         if (headerName != nullptr && headerValue != nullptr && !str_icmp(headerName, protocolHeader.c_str()))
         {
-            http_internal_wstring wHeaderName = utf16_from_utf8(headerName);
-            http_internal_wstring wHeaderValue = utf16_from_utf8(headerValue);
-            websocketTask->m_messageWebSocket->SetRequestHeader(
-                Platform::StringReference(wHeaderName.c_str()),
-                Platform::StringReference(wHeaderValue.c_str()));
+            websocketTask->m_messageWebSocket.SetRequestHeader(winrt::to_hstring(headerName), winrt::to_hstring(headerValue));
             HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: Header %d [%s: %s]", websocket->id, i, headerName, headerValue);
         }
     }
@@ -173,35 +169,35 @@ try
     auto protocols = parse_subprotocols(websocket->subProtocol);
     for (const auto& value : protocols)
     {
-        websocketTask->m_messageWebSocket->Control->SupportedProtocols->Append(Platform::StringReference(value.c_str()));
+        websocketTask->m_messageWebSocket.Control().SupportedProtocols().Append(value.c_str());
         HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: Protocol [%S]", websocket->id, value.c_str());
     }
 
-    websocketTask->m_context = ref new ReceiveContext();
-    websocketTask->m_context->m_websocket = websocket;
+    websocketTask->m_context = ReceiveContext();
+    websocketTask->m_context.m_websocket = websocket;
 
     http_internal_wstring aUrl = utf16_from_utf8(websocket->uri);
-    const auto cxUri = ref new Windows::Foundation::Uri(Platform::StringReference(aUrl.c_str()));
+    const auto cxUri = winrt::Windows::Foundation::Uri(aUrl.c_str());
 
-    websocketTask->m_messageWebSocket->MessageReceived += ref new TypedEventHandler<MessageWebSocket^, MessageWebSocketMessageReceivedEventArgs^>(websocketTask->m_context, &ReceiveContext::OnReceive);
-    websocketTask->m_messageWebSocket->Closed += ref new TypedEventHandler<IWebSocket^, WebSocketClosedEventArgs^>(websocketTask->m_context, &ReceiveContext::OnClosed);
+    websocketTask->m_messageWebSocket.MessageReceived([websocketTask](auto&& sender, auto&&args) { websocketTask->m_context.OnReceive(sender, args); });
+    websocketTask->m_messageWebSocket.Closed([websocketTask](auto&& sender, auto&& args) { websocketTask->m_context.OnClosed(sender, args); });
 
     HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: connecting to %s", websocket->id, websocket->uri.c_str());
 
     try
     {
-        websocketTask->m_connectAsyncOp = websocketTask->m_messageWebSocket->ConnectAsync(cxUri);
+        websocketTask->m_connectAsyncOp = websocketTask->m_messageWebSocket.ConnectAsync(cxUri);
 
-        websocketTask->m_connectAsyncOp->Completed = ref new AsyncActionCompletedHandler(
+        websocketTask->m_connectAsyncOp.Completed(AsyncActionCompletedHandler(
             [websocket, websocketTask, asyncBlock](
-                Windows::Foundation::IAsyncAction^ asyncOp,
-                Windows::Foundation::AsyncStatus status)
+                winrt::Windows::Foundation::IAsyncAction asyncOp,
+                winrt::Windows::Foundation::AsyncStatus status)
         {
             UNREFERENCED_PARAMETER(status);
             try
             {
-                websocketTask->m_messageDataWriter = ref new DataWriter(websocketTask->m_messageWebSocket->OutputStream);
-                if (status == Windows::Foundation::AsyncStatus::Error)
+                websocketTask->m_messageDataWriter = DataWriter(websocketTask->m_messageWebSocket.OutputStream());
+                if (status == winrt::Windows::Foundation::AsyncStatus::Error)
                 {
                     websocketTask->m_connectAsyncOpResult = E_FAIL;
                 }
@@ -210,9 +206,9 @@ try
                     websocketTask->m_connectAsyncOpResult = S_OK;
                 }
             }
-            catch (Platform::Exception^ e)
+            catch (winrt::hresult_error e)
             {
-                websocketTask->m_connectAsyncOpResult = e->HResult;
+                websocketTask->m_connectAsyncOpResult = e.code();
             }
             catch (...)
             {
@@ -228,12 +224,12 @@ try
             }
 
             CompleteAsync(asyncBlock, S_OK, sizeof(WebSocketCompletionResult));
-        });
+        }));
     }
-    catch (Platform::Exception^ e)
+    catch (winrt::hresult_error e)
     {
-        HC_TRACE_ERROR(WEBSOCKET, "Websocket [ID %llu]: ConnectAsync failed = 0x%0.8x", websocketTask->m_websocketHandle->id, e->HResult);
-        return e->HResult;
+        HC_TRACE_ERROR(WEBSOCKET, "Websocket [ID %llu]: ConnectAsync failed = 0x%0.8x", websocketTask->m_websocketHandle->id, e.code());
+        return e.code();
     }
 
     return E_PENDING;
@@ -368,25 +364,25 @@ try
         auto msg = sendMsgContext->nextMessage;
         HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: Message [ID %llu] [%s]", websocket->id, msg->m_id, msg->m_message.c_str());
 
-        websocketTask->m_messageWebSocket->Control->MessageType = SocketMessageType::Utf8;
+        websocketTask->m_messageWebSocket.Control().MessageType(SocketMessageType::Utf8);
         unsigned char* uchar = reinterpret_cast<unsigned char*>(const_cast<char*>(msg->m_message.c_str()));
-        websocketTask->m_messageDataWriter->WriteBytes(Platform::ArrayReference<unsigned char>(uchar, static_cast<unsigned int>(msg->m_message.length())));
+        websocketTask->m_messageDataWriter.WriteBytes(winrt::array_view(reinterpret_cast<const uint8_t*>(msg->m_message.data()), reinterpret_cast<const uint8_t*>(msg->m_message.data() + msg->m_message.size())));
 
-        msg->m_storeAsyncOp = websocketTask->m_messageDataWriter->StoreAsync();
+        msg->m_storeAsyncOp = websocketTask->m_messageDataWriter.StoreAsync();
 
-        msg->m_storeAsyncOp->Completed = ref new AsyncOperationCompletedHandler<unsigned int>(
-            [websocketTask, msg, asyncBlock](Windows::Foundation::IAsyncOperation<unsigned int>^ asyncOp, Windows::Foundation::AsyncStatus status)
+        msg->m_storeAsyncOp.Completed(AsyncOperationCompletedHandler<unsigned int>(
+            [websocketTask, msg, asyncBlock](winrt::Windows::Foundation::IAsyncOperation<unsigned int> asyncOp, winrt::Windows::Foundation::AsyncStatus status)
         {
             try
             {
                 msg->m_storeAsyncOpStatus = status;
-                unsigned int result = asyncOp->GetResults();
+                unsigned int result = asyncOp.GetResults();
                 HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: Message [ID %llu] send complete = %d", websocketTask->m_websocketHandle->id, msg->m_id, result);
                 msg->m_storeAsyncResult = result;
             }
-            catch (Platform::Exception^ ex)
+            catch (winrt::hresult_error ex)
             {
-                msg->m_storeAsyncResult = ex->HResult;
+                msg->m_storeAsyncResult = ex.code();
             }
             catch (...)
             {
@@ -399,12 +395,12 @@ try
             }
             CompleteAsync(asyncBlock, msg->m_storeAsyncResult, sizeof(WebSocketCompletionResult));
             MessageWebSocketSendMessage(websocketTask);
-        });
+        }));
     }
-    catch (Platform::Exception^ e)
+    catch (winrt::hresult_error e)
     {
-        HC_TRACE_ERROR(WEBSOCKET, "Websocket [ID %llu]: Send failed = 0x%0.8x", websocketTask->m_websocketHandle->id, e->HResult);
-        return e->HResult;
+        HC_TRACE_ERROR(WEBSOCKET, "Websocket [ID %llu]: Send failed = 0x%0.8x", websocketTask->m_websocketHandle->id, e.code());
+        return e.code();
     }
 
     return E_PENDING;
@@ -511,7 +507,7 @@ HRESULT Internal_HCWebSocketDisconnect(
     }
 
     HC_TRACE_INFORMATION(WEBSOCKET, "Websocket [ID %llu]: disconnecting", websocket->id);
-    websocketTask->m_messageWebSocket->Close(static_cast<unsigned short>(closeStatus), nullptr);
+    websocketTask->m_messageWebSocket.Close(static_cast<unsigned short>(closeStatus), L"");
     return S_OK;
 }
 

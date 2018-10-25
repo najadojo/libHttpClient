@@ -191,7 +191,7 @@ std::string windows_category_impl::message(int errorCode) const CPPREST_NOEXCEPT
     DWORD dwFlags = FORMAT_MESSAGE_FROM_SYSTEM;
     LPCVOID lpSource = NULL;
 
-#if !defined(__cplusplus_winrt)
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     if (errorCode >= 12000)
     {
         dwFlags = FORMAT_MESSAGE_FROM_HMODULE;
@@ -232,7 +232,7 @@ std::error_condition windows_category_impl::default_error_condition(int errorCod
 
     switch(errorCode)
     {
-#ifndef __cplusplus_winrt
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     case ERROR_WINHTTP_TIMEOUT:
         return std::errc::timed_out;
     case ERROR_WINHTTP_CANNOT_CONNECT:
