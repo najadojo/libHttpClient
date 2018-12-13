@@ -14,8 +14,6 @@
 
   <PropertyGroup>
     <useWsppWebsockets>false</useWsppWebsockets>
-    <useWsppWebsockets Condition="'$(HCLibPlatformType)'=='Android'">true</useWsppWebsockets>
-    <useWsppWebsockets Condition="'$(HCLibPlatformType)'=='Win32'">true</useWsppWebsockets>
 
     <HCLibToolset Condition="'$(PlatformToolset)'=='v140'">140</HCLibToolset>
     <HCLibToolset Condition="'$(PlatformToolset)'=='v141'">141</HCLibToolset>

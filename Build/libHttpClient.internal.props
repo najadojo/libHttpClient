@@ -4,9 +4,10 @@
   <Import Project="libHttpClient.paths.props"/>
   <PropertyGroup Label="LibHttpClientLibProps">
     <IsUnitTestProj Condition="$(ProjectName.Contains('UnitTest'))">true</IsUnitTestProj>
+    <libHttpClientDefine>$(libHttpClientDefine);HC_NOWEBSOCKETS</libHttpClientDefine>
   </PropertyGroup>
   <PropertyGroup Label="LibHttpClientUnitTestProps" Condition="'$(IsUnitTestProj)' == 'true'">
-    <libHttpClientDefine>HC_UNITTEST_API</libHttpClientDefine>
+    <libHttpClientDefine>$(libHttpClientDefine);HC_UNITTEST_API</libHttpClientDefine>
   </PropertyGroup>
   <ItemDefinitionGroup Label="LibHttpClientLibItemDefinition">
     <ClCompile>
