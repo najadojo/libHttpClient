@@ -67,12 +67,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Source\Task\timer_cpp.cpp">
       <Filter>C++ Source\Task\Android</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Source\WebSocket\Websocketpp\websocketpp_websocket.cpp">
-      <Filter>C++ Source\WebSocket\Android</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Source\WebSocket\hcwebsocket.cpp">
-      <Filter>C++ Source\WebSocket</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Source\Common\Android\utils_android.h">
@@ -135,12 +129,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Source\Task\timer.h">
       <Filter>C++ Source\Task</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Source\WebSocket\Websocketpp\x509_cert_utilities.hpp">
-      <Filter>C++ Source\WebSocket\Android</Filter>
-    </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Source\WebSocket\hcwebsocket.h">
-      <Filter>C++ Source\WebSocket</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Include\httpClient\async.h">
       <Filter>C++ Public Includes</Filter>
     </ClInclude>
@@ -202,12 +190,6 @@
     </Filter>
     <Filter Include="C++ Source\Task\Android">
       <UniqueIdentifier>{3A624990-0986-32DA-BE8A-7B6E2C6E144F}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="C++ Source\WebSocket">
-      <UniqueIdentifier>{CE3116D1-0464-39B1-9ED6-5005959BB3CC}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="C++ Source\WebSocket\Android">
-      <UniqueIdentifier>{244453B1-9536-3723-AE2A-16C5901EE428}</UniqueIdentifier>
     </Filter>
     <Filter Include="C++ Public Includes">
       <UniqueIdentifier>{C2C20477-FEDD-3905-AF5B-08FA4AE915C8}</UniqueIdentifier>

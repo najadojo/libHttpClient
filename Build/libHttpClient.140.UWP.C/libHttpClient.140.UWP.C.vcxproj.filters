@@ -73,12 +73,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Source\Task\timer_win32.cpp">
       <Filter>C++ Source\Task\Win</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Source\WebSocket\WinRT\winrt_websocket.cpp">
-      <Filter>C++ Source\WebSocket\WinRT</Filter>
-    </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\Source\WebSocket\hcwebsocket.cpp">
-      <Filter>C++ Source\WebSocket</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Source\Common\EntryList.h">
@@ -150,9 +144,6 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Source\Task\timer.h">
       <Filter>C++ Source\Task</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Source\WebSocket\hcwebsocket.h">
-      <Filter>C++ Source\WebSocket</Filter>
-    </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)..\..\Include\httpClient\async.h">
       <Filter>C++ Public Includes</Filter>
     </ClInclude>
@@ -214,12 +205,6 @@
     </Filter>
     <Filter Include="C++ Source\Task\Win">
       <UniqueIdentifier>{DBE92159-B737-38B9-82EE-B4B132C022B9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="C++ Source\WebSocket">
-      <UniqueIdentifier>{CE3116D1-0464-39B1-9ED6-5005959BB3CC}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="C++ Source\WebSocket\WinRT">
-      <UniqueIdentifier>{5D2B497E-3C54-3CB8-987B-4E4085EB133B}</UniqueIdentifier>
     </Filter>
     <Filter Include="C++ Public Includes">
       <UniqueIdentifier>{C2C20477-FEDD-3905-AF5B-08FA4AE915C8}</UniqueIdentifier>
