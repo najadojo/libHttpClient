@@ -3,6 +3,8 @@
 
 #include "pch.h"
 
+#include <algorithm>
+
 NAMESPACE_XBOX_HTTP_CLIENT_BEGIN
 
 static void ltrim_whitespace(_In_ http_internal_wstring& str)

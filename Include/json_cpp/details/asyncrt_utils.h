@@ -28,7 +28,7 @@
 
 #ifndef _WIN32
 #include <boost/algorithm/string.hpp>
-#if !defined(ANDROID) && !defined(__ANDROID__) // CodePlex 269
+#if !defined(__linux__) && !defined(ANDROID) && !defined(__ANDROID__) // CodePlex 269
 #include <xlocale.h>
 #endif
 #endif

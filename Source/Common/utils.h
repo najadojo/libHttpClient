@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <cstdarg>
 #include <string.h>
 
 using String = http_internal_string;

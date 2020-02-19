@@ -5,6 +5,8 @@
 #include "httpcall.h"
 #include "../Mock/mock.h"
 
+#include <cmath>
+
 using namespace xbox::httpclient;
 
 const int MIN_DELAY_FOR_HTTP_INTERNAL_ERROR_IN_MS = 10000;
