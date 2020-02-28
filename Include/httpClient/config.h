@@ -7,6 +7,7 @@
 #define HC_PLATFORM_XDK 3
 #define HC_PLATFORM_ANDROID 11
 #define HC_PLATFORM_IOS 21
+#define HC_PLATFORM_LINUX 23
 
 // These macros define the datamodels that libHttpClient knows about
 // (a datamodel defines the size of primitive types such as int and pointers)
@@ -46,6 +47,14 @@
     #if TARGET_OS_MAC == 1
         #define HC_PLATFORM HC_PLATFORM_IOS
     #endif
+
+    #if defined(__LP64__)
+        #define HC_DATAMODEL HC_DATAMODEL_LP64
+    #else
+        #define HC_DATAMODEL HC_DATAMODEL_ILP32
+    #endif
+#elif defined(__linux__)
+    #define HC_PLATFORM HC_PLATFORM_LINUX
 
     #if defined(__LP64__)
         #define HC_DATAMODEL HC_DATAMODEL_LP64

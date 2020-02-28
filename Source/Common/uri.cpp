@@ -4,6 +4,8 @@
 #include "pch.h"
 #include "uri.h"
 
+#include <algorithm>
+
 NAMESPACE_XBOX_HTTP_CLIENT_BEGIN
 
 void AppendPortToString(String& string, uint16_t port);
