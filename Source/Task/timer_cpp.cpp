@@ -33,6 +33,8 @@ class TimerQueue
 {
 public:
     bool LazyInit() noexcept;
+    ~TimerQueue();
+
 
     void Add(PlatformTimer* timer, Deadline deadline) noexcept;
     void Remove(PlatformTimer const* timer) noexcept;
@@ -46,6 +48,8 @@ private:
     std::mutex m_mutex;
     std::condition_variable m_cv;
     std::vector<TimerEntry> m_queue; // used as a heap
+    std::thread m_t;
+    bool m_exitThread = false;
     bool m_initialized = false;
 };
 
@@ -57,18 +61,31 @@ TimerQueue g_timerQueue;
 
 }
 
+TimerQueue::~TimerQueue()
+{
+    {
+        std::lock_guard<std::mutex> lock{ m_mutex };
+        m_exitThread = true;
+    }
+
+    m_cv.notify_all();
+    if (m_t.joinable())
+    {
+        m_t.join();
+    }
+}
+
 bool TimerQueue::LazyInit() noexcept
 {
+    m_exitThread = false;
     std::call_once(g_timerQueueLazyInit, [this]()
     {
         try
         {
-            std::thread t([this]()
+            m_t = std::thread([this]()
             {
                 Worker();
             });
-            t.detach();
-
             m_initialized = true;
         }
         catch (...)
@@ -84,6 +101,14 @@ void TimerQueue::Add(PlatformTimer* timer, Deadline deadline) noexcept
 {
     {
         std::lock_guard<std::mutex> lock{ m_mutex };
+
+        for (auto& entry : m_queue)
+        {
+            if (entry.Timer == timer)
+            {
+                entry.Timer = nullptr;
+            }
+        }
 
         m_queue.emplace_back(deadline, timer);
         std::push_heap(m_queue.begin(), m_queue.end(), TimerEntryComparator{});
@@ -109,7 +134,7 @@ void TimerQueue::Remove(PlatformTimer const* timer) noexcept
 void TimerQueue::Worker() noexcept
 {
     std::unique_lock<std::mutex> lock{ m_mutex };
-    while (true)
+    while (!m_exitThread)
     {
         while (!m_queue.empty())
         {
@@ -122,7 +147,7 @@ void TimerQueue::Worker() noexcept
             TimerEntry entry = Pop();
 
             // release the lock while invoking the callback, just in case timer
-            // gets destroyed on this thread or readds itself in the callback
+            // gets destroyed on this thread or re-adds itself in the callback
             lock.unlock();
             if (entry.Timer) // Timer is set to nullptr if the entry is removed
             {
